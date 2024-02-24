@@ -17,12 +17,14 @@ import UIKit
 //🟥 - later | Нижче відображається список усіх транзакцій (в одному списку як поповнення балансу, так і витрати). Список транзакцій повинен групуватися по днях, від нових до старих. Кожна транзакція повинна відображати: час транзакції, кількість витрачених bitcoins, а також одну з категорій (groceries, taxi, electronics, restaurant, other).
 //🟥 - later | Під час відображення використовуємо пагінацію по 20 транзакцій. При скролінгу підвантажуємо наступні 20 і т.д.
 //🟠 візуал є, додати фетчинг та обробку json, оновлення раз на годину | Праворуч вгорі відображаємо курс Bitcoin по відношенню до долара. Він повинен оновлюватися кожну сесію, але не частіше ніж раз на годину (за сесію вважаємо запуск та відкриття додатку з бекграунду).
+//🟥 - at the end | Уніфіковані кольори для режимів
 
 class FirstViewController: UIViewController {
     
     // MARK: - UI Elements & other variables
     private let bitcoinsBalance: UILabel = {
         let label = UILabel()
+        //shadow?
         label.textColor = .white
         label.text = "0 ₿"
         label.font = .systemFont(ofSize: 50, weight: .semibold)
@@ -62,7 +64,8 @@ class FirstViewController: UIViewController {
         view.backgroundColor = .black
         self.title = "Wallet"
         
-        navigationController?.navigationBar.titleTextAttributes = [NSAttributedString.Key.foregroundColor: UIColor.white,
+        navigationController?.navigationBar.titleTextAttributes = [
+            NSAttributedString.Key.foregroundColor: UIColor.white,
         ]
         
         let rightBarButtonItem = UIBarButtonItem(customView: createLabelView())
@@ -150,6 +153,7 @@ class FirstViewController: UIViewController {
     }
     
     @objc func fillUpButtonTapped() {
+        //TODO: design
         let fillUpAlertController = UIAlertController(title: "Add bitcoins 🪙", message: "Write an amount of bitcoins to add: ", preferredStyle: .alert)
         // TODO: make ui prettier
         fillUpAlertController.addTextField { textField in
@@ -183,7 +187,7 @@ class FirstViewController: UIViewController {
 extension FirstViewController: UITableViewDelegate, UITableViewDataSource {
     //TODO: add db
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        0
+        10
     }
     
     //TODO: add db
@@ -199,7 +203,11 @@ extension FirstViewController: UITableViewDelegate, UITableViewDataSource {
     
     //TODO: count number of sections (days)
     func numberOfSections(in tableView: UITableView) -> Int {
-        0
+        1
+    }
+    
+    func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+        return 60
     }
 }
 
