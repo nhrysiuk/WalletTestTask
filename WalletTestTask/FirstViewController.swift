@@ -6,8 +6,9 @@
 //
 
 import UIKit
+import CoreData
 
-//🟠 Перший екран має відображати баланс bitcoins ___ Додавання введеного балансу до поточного, запити про кількість рядків
+//🟠 запити про кількість рядків | ✅Перший екран має відображати баланс bitcoins ___ Додавання введеного балансу до поточного, запити про кількість рядків
 //✅ Поруч із балансом має бути кнопка поповнення балансу
 //✅ При натисканні на неї, відображаємо поп-ап з полем введення кількості bitcoins, на яку ми хочемо поповнити наш баланс
 //🟥 - later | Змінювати дані в бд + створити сутність для балансу
@@ -20,6 +21,31 @@ import UIKit
 //🟥 - at the end | Уніфіковані кольори для режимів
 
 class FirstViewController: UIViewController {
+    
+    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
+    
+    var transaction: [Transaction]?
+    var balance: [Balance]?
+    
+    func fetchBalance() {
+        do {
+            self.balance = try context.fetch(Balance.fetchRequest())
+            
+            if self.balance?.isEmpty ?? true {
+                let initialBalance = Balance(context: context)
+                initialBalance.bitcoins = 0.0
+                try context.save()
+                self.balance = [initialBalance]
+            }
+        } catch {
+            print("Error fetching balance: \(error.localizedDescription)")
+        }
+        
+        DispatchQueue.main.async {
+            self.bitcoinsBalance.text = "\(String(describing: self.balance!.first!.bitcoins)) ₿"
+            self.transactionsTableView.reloadData()
+        }
+    }
     
     // MARK: - UI Elements & other variables
     private let bitcoinsBalance: UILabel = {
@@ -71,6 +97,7 @@ class FirstViewController: UIViewController {
         let rightBarButtonItem = UIBarButtonItem(customView: createLabelView())
         navigationItem.rightBarButtonItem = rightBarButtonItem
         
+        fetchBalance()
         setupUI()
     }
     
@@ -103,7 +130,9 @@ class FirstViewController: UIViewController {
     
     func setupBitcoinsBalance() {
         view.addSubview(bitcoinsBalance)
+        
         bitcoinsBalance.translatesAutoresizingMaskIntoConstraints = false
+        bitcoinsBalance.text = (String(describing: balance!.first!.bitcoins))
         
         NSLayoutConstraint.activate([
             bitcoinsBalance.centerXAnchor.constraint(equalTo: self.view.centerXAnchor),
@@ -132,7 +161,7 @@ class FirstViewController: UIViewController {
         NSLayoutConstraint.activate([
             addTransactionButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             addTransactionButton.topAnchor.constraint(equalTo: bitcoinsBalance.bottomAnchor,
-                                                constant: 5),
+                                                      constant: 5),
         ])
     }
     
@@ -152,20 +181,38 @@ class FirstViewController: UIViewController {
         ])
     }
     
+    // MARK: - Methods for UI Interaction
     @objc func fillUpButtonTapped() {
-        //TODO: design
-        let fillUpAlertController = UIAlertController(title: "Add bitcoins 🪙", message: "Write an amount of bitcoins to add: ", preferredStyle: .alert)
-        // TODO: make ui prettier
+        // TODO: design
+        let fillUpAlertController = UIAlertController(title: "Add bitcoins 🪙",
+                                                      message: "Write an amount of bitcoins to add: ",
+                                                      preferredStyle: .alert)
         fillUpAlertController.addTextField { textField in
             textField.placeholder = "Enter an amount of bitcoins..."
             textField.keyboardType = .decimalPad
         }
         
         let saveAction = UIAlertAction(title: "Save", style: .default) { [weak self, weak fillUpAlertController] _ in
+            guard let self = self else { return }
+            
             if let textField = fillUpAlertController?.textFields?.first,
                let enteredNumber = textField.text {
-                // TODO: fix + only numbers available
-                self?.bitcoinsBalance.text = "\(enteredNumber) ₿"
+            
+                do {
+                    let fetchRequest: NSFetchRequest<Balance> = Balance.fetchRequest()
+                    if let existingBalance = try context.fetch(fetchRequest).first {
+                        existingBalance.bitcoins += Double(enteredNumber) ?? 0.0
+                    } else {
+                        let newBalance = Balance(context: context)
+                        newBalance.bitcoins = Double(enteredNumber) ?? 0.0
+                    }
+                    
+                    try context.save()
+                    
+                    self.fetchBalance()
+                } catch {
+                    print("Error: \(error.localizedDescription)")
+                }
             }
         }
         
@@ -184,6 +231,7 @@ class FirstViewController: UIViewController {
     }
 }
 
+//MARK: - TableView setup
 extension FirstViewController: UITableViewDelegate, UITableViewDataSource {
     //TODO: add db
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -213,6 +261,6 @@ extension FirstViewController: UITableViewDelegate, UITableViewDataSource {
 
 extension UIColor {
     static var turquoise: UIColor {
-          return UIColor(red: 104/255, green: 222/255, blue: 228/255, alpha: 1.0)
-      }
+        return UIColor(red: 104/255, green: 222/255, blue: 228/255, alpha: 1.0)
+    }
 }
