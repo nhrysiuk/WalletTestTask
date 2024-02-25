@@ -40,13 +40,11 @@ class TransactionTableViewCell: UITableViewCell {
             categoryLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
         ])
     }
-
+    
     func setupDateLabel() {
         contentView.addSubview(dateLabel)
         
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "dd.MM.yyyy HH:mm"
-        let date = dateFormatter.string(from: transaction!.date!)
+        let date = formatDate(transaction!.date!)
         dateLabel.text = date
         
         dateLabel.font = .systemFont(ofSize: 18, weight: .regular)
@@ -57,6 +55,12 @@ class TransactionTableViewCell: UITableViewCell {
             dateLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -5),
             dateLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
         ])
+    }
+    
+    func formatDate(_ date: Date) -> String {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = Const.dateFormat
+        return dateFormatter.string(from: date)
     }
     
     func setupBitcoinsLabel() {

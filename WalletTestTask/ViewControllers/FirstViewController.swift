@@ -8,19 +8,6 @@
 import UIKit
 import CoreData
 
-// fill up 0 !!!!!!!
-//✅ запити про кількість рядків | Перший екран має відображати баланс bitcoins ___ Додавання введеного балансу до поточного
-//✅ Поруч із балансом має бути кнопка поповнення балансу
-//✅ При натисканні на неї, відображаємо поп-ап з полем введення кількості bitcoins, на яку ми хочемо поповнити наш баланс
-//✅ - later | Змінювати дані в бд + створити сутність для балансу
-//✅ Під балансом відображаємо кнопку “Add transaction”🟠, вона має вести на Екран 2.
-//✅ - delegate
-
-//✅ Нижче відображається список усіх транзакцій (в одному списку як поповнення балансу, так і витрати). Список транзакцій повинен групуватися по днях, від нових до старих. Кожна транзакція повинна відображати: час транзакції, кількість витрачених bitcoins, а також одну з категорій (groceries, taxi, electronics, restaurant, other).
-//✅ Під час відображення використовуємо пагінацію по 20 транзакцій. При скролінгу підвантажуємо наступні 20 і т.д.
-//🟠 оновлення раз на годину | Праворуч вгорі відображаємо курс Bitcoin по відношенню до долара. Він повинен оновлюватися кожну сесію, але не частіше ніж раз на годину (за сесію вважаємо запуск та відкриття додатку з бекграунду).
-//🟥 - at the end | Уніфіковані кольори для режимів
-
 class FirstViewController: UIViewController {
     
     // MARK: - UI Elements & other variables
@@ -71,7 +58,7 @@ class FirstViewController: UIViewController {
     func setupUI() {
         view.backgroundColor = .black
         self.title = "Wallet"
-    
+        
         let rightBarButtonItem = UIBarButtonItem(customView: createLabelView())
         navigationItem.rightBarButtonItem = rightBarButtonItem
         
@@ -100,33 +87,51 @@ class FirstViewController: UIViewController {
     }
     
     func updateRateLabelIfNeeded() {
-        fetchTime()
+        let time = CoreDataProcessor.shared.fetch(Time.self)
+        
+        if (!time.isEmpty) {
+            timeOfLastUpdate = time.first?.lastUpdate
+        }
         
         if timeOfLastUpdate == nil || Date().timeIntervalSince(timeOfLastUpdate!) >= 3600 {
             Task {
                 await fetchRateFromAPI()
-                DispatchQueue.main.async {
-                    let newRate = Rate(context: self.context)
-                    newRate.dollars = Double(self.rate!) ?? 0
-                    
-                    do {
-                        try self.context.save()
-                    } catch {
-                        print("Couldn't save rate: \(error.localizedDescription)")
-                    }
-                    self.rateLabel.text = "$ \(self.rate ?? "0")"
-                }
+                self.rateLabel.text = "$ \(self.rate ?? "0")"
             }
         } else {
-            fetchRateFromCD()
-            self.rateLabel.text = "$ \(String(describing: self.rate))"
+            let fetchedRate = CoreDataProcessor.shared.fetch(BitcoinRate.self)
+            let doubleRate = fetchedRate.last?.dollars
+            rate = doubleRate!
+            self.rateLabel.text = "$ \(self.rate!)"
         }
     }
     
     func fetchRateFromAPI() async {
         rate = await APIProcessor.fetchExchangeRate() ?? "no data"
+        let existingRateEntities = CoreDataProcessor.shared.fetch(BitcoinRate.self)
+        if let existingRate = existingRateEntities.first {
+            existingRate.dollars = self.rate!
+        } else {
+            let newRate = BitcoinRate(context: CoreDataProcessor.shared.context)
+            newRate.dollars = self.rate!
+            CoreDataProcessor.shared.saveContext()
+        }
+        
+        CoreDataProcessor.shared.saveContext()
         
         timeOfLastUpdate = Date()
+        
+        let existingTimeEntities = CoreDataProcessor.shared.fetch(Time.self)
+        
+        if let existingTime = existingTimeEntities.first {
+            existingTime.lastUpdate = timeOfLastUpdate
+        } else {
+            let newTime = Time(context: CoreDataProcessor.shared.context)
+            newTime.lastUpdate = timeOfLastUpdate
+        }
+        
+        let time = Time(context: CoreDataProcessor.shared.context)
+        time.lastUpdate = timeOfLastUpdate
     }
     
     func setupStackView() {
@@ -159,7 +164,7 @@ class FirstViewController: UIViewController {
         addTransactionButton.setTitleColor(.turquoise, for: .normal)
         addTransactionButton.backgroundColor = .darkGray
         addTransactionButton.layer.cornerRadius = 7
-    
+        
         
         addTransactionButton.addTarget(self, action: #selector(addTransactionButtonTapped), for: .touchUpInside)
         view.addSubview(addTransactionButton)
@@ -206,23 +211,23 @@ class FirstViewController: UIViewController {
             guard let self = self else { return }
             
             if let textField = fillUpAlertController?.textFields?.first,
-               let enteredNumber = textField.text,  let number = Double(enteredNumber) {
+               let enteredNumber = textField.text,  let number = Double(enteredNumber), number > 0 {
                 do {
                     let fetchRequest: NSFetchRequest<Balance> = Balance.fetchRequest()
-                    if let existingBalance = try context.fetch(fetchRequest).first {
+                    if let existingBalance = try CoreDataProcessor.shared.context.fetch(fetchRequest).first {
                         existingBalance.bitcoins += number
                     } else {
-                        let newBalance = Balance(context: context)
+                        let newBalance = Balance(context: CoreDataProcessor.shared.context)
                         newBalance.bitcoins = number
                     }
                     
-                    let transaction = Transaction(context: self.context)
+                    let transaction = Transaction(context: CoreDataProcessor.shared.context)
                     transaction.bitcoins = number
                     transaction.category = "fill up"
                     transaction.date = Date()
                     
                     do {
-                        try context.save()
+                        try CoreDataProcessor.shared.context.save()
                     } catch {
                         print("Couldn't save transaction: \(error.localizedDescription)")
                     }
@@ -234,8 +239,8 @@ class FirstViewController: UIViewController {
                 }
             } else {
                 let wrongAlertController = UIAlertController(title: "You've entered something wrong",
-                                                              message: "Please enter a valid number next time",
-                                                              preferredStyle: .alert)
+                                                             message: "Please enter a valid number next time",
+                                                             preferredStyle: .alert)
                 let cancelAction = UIAlertAction(title: "OK", style: .cancel, handler: nil)
                 
                 wrongAlertController.addAction(cancelAction)
@@ -304,18 +309,13 @@ extension FirstViewController: UITableViewDelegate, UITableViewDataSource {
     
     // MARK: - Work with Core Data
     func fetchBalance() {
-        let request = Balance.fetchRequest()
-        do {
-            self.balance = try context.fetch(request)
-            
-            if self.balance?.isEmpty ?? true {
-                let initialBalance = Balance(context: context)
-                initialBalance.bitcoins = 0.0
-                try context.save()
-                self.balance = [initialBalance]
-            }
-        } catch {
-            print("Error fetching balance: \(error.localizedDescription)")
+        self.balance = CoreDataProcessor.shared.fetch(Balance.self)
+        
+        if self.balance?.isEmpty ?? true {
+            let initialBalance = Balance(context: CoreDataProcessor.shared.context)
+            initialBalance.bitcoins = 0.0
+            CoreDataProcessor.shared.saveContext()
+            self.balance = [initialBalance]
         }
         
         DispatchQueue.main.async {
@@ -334,13 +334,11 @@ extension FirstViewController: UITableViewDelegate, UITableViewDataSource {
         request.sortDescriptors = [sort]
         
         do {
-            let fetchedTransactions = try context.fetch(request)
+            let fetchedTransactions = try CoreDataProcessor.shared.context.fetch(request)
             transactions += fetchedTransactions
             
             transactionsByDate = Dictionary(grouping: transactions) { transaction in
-                let dateFormatter = DateFormatter()
-                dateFormatter.dateFormat = "dd.MM.yyyy"
-                return dateFormatter.string(from: transaction.date!)
+                return formatDate(transaction.date!)
             }
             
             loadedTransactionsCount += fetchedTransactions.count
@@ -353,41 +351,14 @@ extension FirstViewController: UITableViewDelegate, UITableViewDataSource {
         }
     }
     
-    
-    func fetchRateFromCD() {
-        let request = Rate.fetchRequest()
-        
-        do {
-            let fetchedRate = try context.fetch(request)
-            try context.save()
-            let doubleRate = fetchedRate.first?.dollars
-            rate = String(describing: doubleRate)
-        } catch {
-            print("Error fetching rate: \(error.localizedDescription)")
-        }
+    func formatDate(_ date: Date) -> String {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = Const.dateFormat
+        return dateFormatter.string(from: date)
     }
-    
-    func fetchTime() {
-        do {
-            let time = try context.fetch(Time.fetchRequest())
-            if (!time.isEmpty) {
-                timeOfLastUpdate = time.first?.lastUpdate
-            }
-        } catch {
-            print("Error fetching balance: \(error.localizedDescription)")
-        }
-        
-        DispatchQueue.main.async {
-            self.bitcoinsBalance.text = "\(String(describing: self.balance!.first!.bitcoins)) ₿"
-            self.transactionsTableView.reloadData()
-        }
-    }
-    
 }
 
 extension FirstViewController: SecondViewControllerDelegate {
-    
-    var context: NSManagedObjectContext { (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext }
     
     func addTransaction() {
         loadedTransactionsCount = 0

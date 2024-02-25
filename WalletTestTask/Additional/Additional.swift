@@ -21,3 +21,8 @@ enum Category: String, CaseIterable {
     case restaurant
     case other
 }
+
+enum Const {
+    static let dateFormat = "dd.MM.yyyy"
+    
+}

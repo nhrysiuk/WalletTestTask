@@ -10,7 +10,6 @@ import CoreData
 
 //MARK: - Protocol
 protocol SecondViewControllerDelegate: AnyObject {
-    var context: NSManagedObjectContext { get }
     func addTransaction()
 }
 
@@ -114,7 +113,7 @@ class SecondViewController: UIViewController {
     
     // MARK: - Methods for UI Interaction
     @objc func addButtonTapped() {
-        guard let number = Double(textField.text ?? "") else {
+        guard let number = Double(textField.text ?? ""), number > 0 else {
             let wrongAlertController = UIAlertController(title: "You've entered wrong number",
                                                           message: "Please enter a valid number next time",
                                                           preferredStyle: .alert)
@@ -128,13 +127,13 @@ class SecondViewController: UIViewController {
         
         do {
             let fetchRequest: NSFetchRequest<Balance> = Balance.fetchRequest()
-            if let existingBalance = try delegate!.context.fetch(fetchRequest).first, existingBalance.bitcoins > number {
-                let transaction = Transaction(context: delegate!.context)
+            if let existingBalance = try CoreDataProcessor.shared.context.fetch(fetchRequest).first, existingBalance.bitcoins > number {
+                let transaction = Transaction(context: CoreDataProcessor.shared.context)
                 transaction.bitcoins = -number
                 transaction.category = chosenCategory
                 transaction.date = Date()
                 existingBalance.bitcoins -= number
-                try delegate!.context.save()
+                CoreDataProcessor.shared.saveContext()
                 delegate!.addTransaction()
             } else {
                 let wrongAlertController = UIAlertController(title: "Not enough money",

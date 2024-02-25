@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		1A318BC42B8B95750074FFD5 /* Additional.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A318BC32B8B95750074FFD5 /* Additional.swift */; };
+		1A318BCC2B8BCBDB0074FFD5 /* CoreDataProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A318BCB2B8BCBDB0074FFD5 /* CoreDataProcessor.swift */; };
 		1AC3C77E2B8A00F6003C0CA8 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AC3C77D2B8A00F6003C0CA8 /* AppDelegate.swift */; };
 		1AC3C7802B8A00F6003C0CA8 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AC3C77F2B8A00F6003C0CA8 /* SceneDelegate.swift */; };
 		1AC3C7822B8A00F6003C0CA8 /* FirstViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AC3C7812B8A00F6003C0CA8 /* FirstViewController.swift */; };
@@ -21,6 +22,7 @@
 
 /* Begin PBXFileReference section */
 		1A318BC32B8B95750074FFD5 /* Additional.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Additional.swift; sourceTree = "<group>"; };
+		1A318BCB2B8BCBDB0074FFD5 /* CoreDataProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataProcessor.swift; sourceTree = "<group>"; };
 		1AC3C77A2B8A00F6003C0CA8 /* WalletTestTask.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WalletTestTask.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1AC3C77D2B8A00F6003C0CA8 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		1AC3C77F2B8A00F6003C0CA8 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -45,6 +47,40 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		1A318BC72B8BCB310074FFD5 /* ViewControllers */ = {
+			isa = PBXGroup;
+			children = (
+				1AC3C7812B8A00F6003C0CA8 /* FirstViewController.swift */,
+				1AC3C7982B8A427C003C0CA8 /* SecondViewController.swift */,
+			);
+			path = ViewControllers;
+			sourceTree = "<group>";
+		};
+		1A318BC82B8BCB690074FFD5 /* Processors */ = {
+			isa = PBXGroup;
+			children = (
+				1AC460B12B8B6B980083E710 /* APIProcessor.swift */,
+				1A318BCB2B8BCBDB0074FFD5 /* CoreDataProcessor.swift */,
+			);
+			path = Processors;
+			sourceTree = "<group>";
+		};
+		1A318BC92B8BCB780074FFD5 /* Additional */ = {
+			isa = PBXGroup;
+			children = (
+				1A318BC32B8B95750074FFD5 /* Additional.swift */,
+			);
+			path = Additional;
+			sourceTree = "<group>";
+		};
+		1A318BCA2B8BCB8B0074FFD5 /* View */ = {
+			isa = PBXGroup;
+			children = (
+				1AC3C7962B8A2BA7003C0CA8 /* TransactionTableViewCell.swift */,
+			);
+			path = View;
+			sourceTree = "<group>";
+		};
 		1AC3C7712B8A00F6003C0CA8 = {
 			isa = PBXGroup;
 			children = (
@@ -64,17 +100,16 @@
 		1AC3C77C2B8A00F6003C0CA8 /* WalletTestTask */ = {
 			isa = PBXGroup;
 			children = (
+				1A318BCA2B8BCB8B0074FFD5 /* View */,
+				1A318BC92B8BCB780074FFD5 /* Additional */,
+				1A318BC82B8BCB690074FFD5 /* Processors */,
+				1A318BC72B8BCB310074FFD5 /* ViewControllers */,
 				1AC3C77D2B8A00F6003C0CA8 /* AppDelegate.swift */,
 				1AC3C77F2B8A00F6003C0CA8 /* SceneDelegate.swift */,
-				1AC3C7812B8A00F6003C0CA8 /* FirstViewController.swift */,
-				1AC3C7982B8A427C003C0CA8 /* SecondViewController.swift */,
-				1AC3C7962B8A2BA7003C0CA8 /* TransactionTableViewCell.swift */,
 				1AC3C7892B8A00F8003C0CA8 /* Assets.xcassets */,
 				1AC3C78B2B8A00F8003C0CA8 /* LaunchScreen.storyboard */,
 				1AC3C78E2B8A00F8003C0CA8 /* Info.plist */,
 				1AC3C7862B8A00F7003C0CA8 /* WalletTestTask.xcdatamodeld */,
-				1AC460B12B8B6B980083E710 /* APIProcessor.swift */,
-				1A318BC32B8B95750074FFD5 /* Additional.swift */,
 			);
 			path = WalletTestTask;
 			sourceTree = "<group>";
@@ -152,6 +187,7 @@
 				1AC3C7822B8A00F6003C0CA8 /* FirstViewController.swift in Sources */,
 				1AC3C77E2B8A00F6003C0CA8 /* AppDelegate.swift in Sources */,
 				1AC3C7802B8A00F6003C0CA8 /* SceneDelegate.swift in Sources */,
+				1A318BCC2B8BCBDB0074FFD5 /* CoreDataProcessor.swift in Sources */,
 				1AC3C7992B8A427C003C0CA8 /* SecondViewController.swift in Sources */,
 				1AC3C7972B8A2BA7003C0CA8 /* TransactionTableViewCell.swift in Sources */,
 				1A318BC42B8B95750074FFD5 /* Additional.swift in Sources */,
