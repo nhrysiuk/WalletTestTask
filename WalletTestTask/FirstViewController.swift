@@ -8,85 +8,68 @@
 import UIKit
 import CoreData
 
-//🟠 запити про кількість рядків | ✅Перший екран має відображати баланс bitcoins ___ Додавання введеного балансу до поточного, запити про кількість рядків
+// fill up 0 !!!!!!!
+//✅ запити про кількість рядків | Перший екран має відображати баланс bitcoins ___ Додавання введеного балансу до поточного
 //✅ Поруч із балансом має бути кнопка поповнення балансу
 //✅ При натисканні на неї, відображаємо поп-ап з полем введення кількості bitcoins, на яку ми хочемо поповнити наш баланс
-//🟥 - later | Змінювати дані в бд + створити сутність для балансу
+//✅ - later | Змінювати дані в бд + створити сутність для балансу
 //✅ Під балансом відображаємо кнопку “Add transaction”🟠, вона має вести на Екран 2.
-//🟥 - delegate
+//✅ - delegate
 
-//🟥 - later | Нижче відображається список усіх транзакцій (в одному списку як поповнення балансу, так і витрати). Список транзакцій повинен групуватися по днях, від нових до старих. Кожна транзакція повинна відображати: час транзакції, кількість витрачених bitcoins, а також одну з категорій (groceries, taxi, electronics, restaurant, other).
-//🟥 - later | Під час відображення використовуємо пагінацію по 20 транзакцій. При скролінгу підвантажуємо наступні 20 і т.д.
-//🟠 візуал є, додати фетчинг та обробку json, оновлення раз на годину | Праворуч вгорі відображаємо курс Bitcoin по відношенню до долара. Він повинен оновлюватися кожну сесію, але не частіше ніж раз на годину (за сесію вважаємо запуск та відкриття додатку з бекграунду).
-//🟥 - at the end | Уніфіковані кольори для режимів
+//✅ Нижче відображається список усіх транзакцій (в одному списку як поповнення балансу, так і витрати). Список транзакцій повинен групуватися по днях, від нових до старих. Кожна транзакція повинна відображати: час транзакції, кількість витрачених bitcoins, а також одну з категорій (groceries, taxi, electronics, restaurant, other).
+//✅ Під час відображення використовуємо пагінацію по 20 транзакцій. При скролінгу підвантажуємо наступні 20 і т.д.
+//🟠 оновлення раз на годину | Праворуч вгорі відображаємо курс Bitcoin по відношенню до долара. Він повинен оновлюватися кожну сесію, але не частіше ніж раз на годину (за сесію вважаємо запуск та відкриття додатку з бекграунду).
+//🟥 - at the end | Уніфіковані кольори для режимів Added pagination, created file for additional stuff, made code more readable
 
 class FirstViewController: UIViewController {
     
-    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
-    
-    var transaction: [Transaction]?
-    var balance: [Balance]?
-    
-    func fetchBalance() {
-        do {
-            self.balance = try context.fetch(Balance.fetchRequest())
-            
-            if self.balance?.isEmpty ?? true {
-                let initialBalance = Balance(context: context)
-                initialBalance.bitcoins = 0.0
-                try context.save()
-                self.balance = [initialBalance]
-            }
-        } catch {
-            print("Error fetching balance: \(error.localizedDescription)")
-        }
-        
-        DispatchQueue.main.async {
-            self.bitcoinsBalance.text = "\(String(describing: self.balance!.first!.bitcoins)) ₿"
-            self.transactionsTableView.reloadData()
-        }
-    }
-    
     // MARK: - UI Elements & other variables
-    private let bitcoinsBalance: UILabel = {
-        let label = UILabel()
-        //shadow?
-        label.textColor = .white
-        label.text = "0 ₿"
-        label.font = .systemFont(ofSize: 50, weight: .semibold)
+    private let bitcoinsBalance = UILabel()
+    private let fillUpBalance = UIButton()
+    
+    private lazy var stackView: UIStackView = {
+        let stackView = UIStackView(arrangedSubviews: [bitcoinsBalance, fillUpBalance])
+        stackView.axis = .horizontal
+        stackView.alignment = .center
+        stackView.spacing = 8
+        stackView.translatesAutoresizingMaskIntoConstraints = false
         
-        return label
+        return stackView
     }()
     
-    private let fillUpBalance: UIButton = {
-        let button = UIButton()
-        button.setImage(UIImage(systemName: "plus.circle"), for: .normal)
-        button.setPreferredSymbolConfiguration(UIImage.SymbolConfiguration(pointSize: 25, weight: .regular), forImageIn: .normal)
-        button.tintColor = .turquoise
-        
-        return button
-    }()
+    private let addTransactionButton = UIButton()
+    private let transactionsTableView = UITableView()
+    private var rateLabel = UILabel()
     
-    private let addTransactionButton: UIButton = {
-        let button = UIButton()
-        button.setTitle("Add transaction", for: .normal)
-        button.tintColor = .white
-        
-        return button
-    }()
+    var transactions = [Transaction]()
+    var transactionsByDate = [String: [Transaction]]()
+    var balance: [Balance]?
+    var timeOfLastUpdate: Date?
+    var rate: String?
     
-    private let transactionsTableView: UITableView = {
-        let tableView = UITableView()
-        tableView.backgroundColor = .darkGray
-        tableView.register(TransactionTableViewCell.self, forCellReuseIdentifier: "TransactionCell")
-        
-        return tableView
-    }()
+    var transactionsPerPage = 10
+    var totalTransactionsCount = 0
+    var loadedTransactionsCount = 0
     
     // MARK: - View Controller Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
+    }
+    
+    override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
+        super.init(nibName: nibNameOrNil, bundle: nibBundleOrNil)
         
+        fetchBalance()
+        fetchTransactions()
+        setupUI()
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    // MARK: - Setup UIElements
+    func setupUI() {
         view.backgroundColor = .black
         self.title = "Wallet"
         
@@ -97,63 +80,85 @@ class FirstViewController: UIViewController {
         let rightBarButtonItem = UIBarButtonItem(customView: createLabelView())
         navigationItem.rightBarButtonItem = rightBarButtonItem
         
-        fetchBalance()
-        setupUI()
-    }
-    
-    // MARK: - Setup UIElements
-    func setupUI() {
-        setupBitcoinsBalance()
-        setupFillUpBalance()
+        setupStackView()
         setupAddTransaction()
         setupTransactionsTableView()
     }
     
     func createLabelView() -> UIView {
+        rateLabel.textColor = .turquoise
+        rateLabel.translatesAutoresizingMaskIntoConstraints = false
+        
         let containerView = UIView()
+        containerView.addSubview(rateLabel)
         
-        let label = UILabel()
-        label.text = "$51,120.00"
-        label.textColor = .white
-        
-        label.translatesAutoresizingMaskIntoConstraints = false
-        containerView.addSubview(label)
         NSLayoutConstraint.activate([
-            label.topAnchor.constraint(equalTo: containerView.topAnchor),
-            label.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
-            label.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
-            label.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            rateLabel.topAnchor.constraint(equalTo: containerView.topAnchor),
+            rateLabel.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
+            rateLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+            rateLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
         ])
+        
+        updateRateLabelIfNeeded()
         
         return containerView
     }
     
-    func setupBitcoinsBalance() {
-        view.addSubview(bitcoinsBalance)
+    func updateRateLabelIfNeeded() {
+        fetchTime()
         
-        bitcoinsBalance.translatesAutoresizingMaskIntoConstraints = false
-        bitcoinsBalance.text = (String(describing: balance!.first!.bitcoins))
-        
-        NSLayoutConstraint.activate([
-            bitcoinsBalance.centerXAnchor.constraint(equalTo: self.view.centerXAnchor),
-            bitcoinsBalance.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor,
-                                                 constant: 10),
-        ])
+        if timeOfLastUpdate == nil || Date().timeIntervalSince(timeOfLastUpdate!) >= 3600 {
+            Task {
+                await fetchRateFromAPI()
+                DispatchQueue.main.async {
+                    let newRate = Rate(context: self.context)
+                    newRate.dollars = Double(self.rate!) ?? 0
+                    
+                    do {
+                        try self.context.save()
+                    } catch {
+                        print("Couldn't save rate: \(error.localizedDescription)")
+                    }
+                    self.rateLabel.text = "$ \(self.rate ?? "0")"
+                }
+            }
+        } else {
+            fetchRateFromCD()
+            self.rateLabel.text = "$ \(String(describing: self.rate))"
+        }
     }
     
-    func setupFillUpBalance() {
+    func fetchRateFromAPI() async {
+        rate = await APIProcessor.fetchExchangeRate() ?? "no data"
+        
+        timeOfLastUpdate = Date()
+    }
+    
+    func setupStackView() {
+        bitcoinsBalance.textColor = .white
+        bitcoinsBalance.text = "0 ₿"
+        bitcoinsBalance.font = .systemFont(ofSize: 50, weight: .semibold)
+        bitcoinsBalance.numberOfLines = 0
         fillUpBalance.addTarget(self, action: #selector(fillUpButtonTapped), for: .touchUpInside)
-        view.addSubview(fillUpBalance)
-        fillUpBalance.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(stackView)
+        
+        fillUpBalance.setImage(UIImage(systemName: "plus.circle"), for: .normal)
+        fillUpBalance.setPreferredSymbolConfiguration(UIImage.SymbolConfiguration(pointSize: 25, weight: .regular), forImageIn: .normal)
+        fillUpBalance.tintColor = .turquoise
         
         NSLayoutConstraint.activate([
-            fillUpBalance.centerYAnchor.constraint(equalTo: bitcoinsBalance.centerYAnchor),
-            fillUpBalance.leadingAnchor.constraint(equalTo: bitcoinsBalance.trailingAnchor,
-                                                   constant: 10),
+            fillUpBalance.widthAnchor.constraint(equalToConstant: 30),
+            stackView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10),
+            stackView.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 16),
+            stackView.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -16),
+            stackView.centerXAnchor.constraint(equalTo: view.centerXAnchor)
         ])
     }
     
     func setupAddTransaction() {
+        addTransactionButton.setTitle("Add transaction", for: .normal)
+        addTransactionButton.tintColor = .white
+        
         addTransactionButton.addTarget(self, action: #selector(addTransactionButtonTapped), for: .touchUpInside)
         view.addSubview(addTransactionButton)
         addTransactionButton.translatesAutoresizingMaskIntoConstraints = false
@@ -166,6 +171,9 @@ class FirstViewController: UIViewController {
     }
     
     func setupTransactionsTableView() {
+        transactionsTableView.backgroundColor = .darkGray
+        transactionsTableView.register(TransactionTableViewCell.self, forCellReuseIdentifier: "TransactionCell")
+        
         self.transactionsTableView.delegate = self
         self.transactionsTableView.dataSource = self
         
@@ -183,7 +191,6 @@ class FirstViewController: UIViewController {
     
     // MARK: - Methods for UI Interaction
     @objc func fillUpButtonTapped() {
-        // TODO: design
         let fillUpAlertController = UIAlertController(title: "Add bitcoins 🪙",
                                                       message: "Write an amount of bitcoins to add: ",
                                                       preferredStyle: .alert)
@@ -197,18 +204,28 @@ class FirstViewController: UIViewController {
             
             if let textField = fillUpAlertController?.textFields?.first,
                let enteredNumber = textField.text {
-            
+                let number = Double(enteredNumber) ?? 0.0
                 do {
                     let fetchRequest: NSFetchRequest<Balance> = Balance.fetchRequest()
                     if let existingBalance = try context.fetch(fetchRequest).first {
-                        existingBalance.bitcoins += Double(enteredNumber) ?? 0.0
+                        existingBalance.bitcoins += number
                     } else {
                         let newBalance = Balance(context: context)
-                        newBalance.bitcoins = Double(enteredNumber) ?? 0.0
+                        newBalance.bitcoins = number
                     }
                     
-                    try context.save()
+                    let transaction = Transaction(context: self.context)
+                    transaction.bitcoins = number
+                    transaction.category = "fill up"
+                    transaction.date = Date()
                     
+                    do {
+                        try context.save()
+                    } catch {
+                        print("Couldn't save transaction: \(error.localizedDescription)")
+                    }
+                    
+                    addTransaction()
                     self.fetchBalance()
                 } catch {
                     print("Error: \(error.localizedDescription)")
@@ -227,40 +244,145 @@ class FirstViewController: UIViewController {
     @objc func addTransactionButtonTapped() {
         let secondVC = SecondViewController()
         
+        secondVC.delegate = self
         navigationController?.pushViewController(secondVC, animated: true)
     }
 }
 
 //MARK: - TableView setup
 extension FirstViewController: UITableViewDelegate, UITableViewDataSource {
-    //TODO: add db
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        10
+    
+    func numberOfSections(in tableView: UITableView) -> Int {
+        return transactionsByDate.keys.count
     }
     
-    //TODO: add db
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        let date = Array(transactionsByDate.keys)[section]
+        return transactionsByDate[date]?.count ?? 0
+    }
+    
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         guard let cell = tableView.dequeueReusableCell(withIdentifier: TransactionTableViewCell.identifier, for: indexPath) as? TransactionTableViewCell else {
             fatalError("oops")
         }
         
-        cell.configure(with: nil)
+        let date = Array(transactionsByDate.keys)[indexPath.section]
+        if let transaction = transactionsByDate[date]?[indexPath.row] {
+            cell.configure(with: transaction)
+        }
         
         return cell
     }
     
-    //TODO: count number of sections (days)
-    func numberOfSections(in tableView: UITableView) -> Int {
-        1
+    func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
+        return Array(transactionsByDate.keys)[section]
     }
+    
     
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
         return 60
     }
+    
+    func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        let offsetY = scrollView.contentOffset.y
+        let contentHeight = scrollView.contentSize.height
+        
+        if offsetY > contentHeight - scrollView.frame.size.height {
+            fetchTransactions()
+        }
+    }
+    
+    // MARK: - Work with Core Data
+    func fetchBalance() {
+        let request = Balance.fetchRequest()
+        do {
+            self.balance = try context.fetch(request)
+            
+            if self.balance?.isEmpty ?? true {
+                let initialBalance = Balance(context: context)
+                initialBalance.bitcoins = 0.0
+                try context.save()
+                self.balance = [initialBalance]
+            }
+        } catch {
+            print("Error fetching balance: \(error.localizedDescription)")
+        }
+        
+        DispatchQueue.main.async {
+            self.bitcoinsBalance.text = "\(String(describing: self.balance!.first!.bitcoins)) ₿"
+            self.transactionsTableView.reloadData()
+        }
+    }
+    
+    func fetchTransactions() {
+        let request = Transaction.fetchRequest()
+        
+        request.fetchLimit = transactionsPerPage
+        request.fetchOffset = loadedTransactionsCount
+        
+        let sort = NSSortDescriptor(key: "date", ascending: false)
+        request.sortDescriptors = [sort]
+        
+        do {
+            let fetchedTransactions = try context.fetch(request)
+            transactions += fetchedTransactions
+            
+            transactionsByDate = Dictionary(grouping: transactions) { transaction in
+                let dateFormatter = DateFormatter()
+                dateFormatter.dateFormat = "dd.MM.yyyy"
+                return dateFormatter.string(from: transaction.date!)
+            }
+            
+            loadedTransactionsCount += fetchedTransactions.count
+        } catch {
+            print("Error fetching transactions: \(error.localizedDescription)")
+        }
+        
+        DispatchQueue.main.async {
+            self.transactionsTableView.reloadData()
+        }
+    }
+    
+    
+    func fetchRateFromCD() {
+        let request = Rate.fetchRequest()
+        
+        do {
+            let fetchedRate = try context.fetch(request)
+            try context.save()
+            let doubleRate = fetchedRate.first?.dollars
+            rate = String(describing: doubleRate)
+        } catch {
+            print("Error fetching rate: \(error.localizedDescription)")
+        }
+    }
+    
+    func fetchTime() {
+        do {
+            let time = try context.fetch(Time.fetchRequest())
+            if (!time.isEmpty) {
+                timeOfLastUpdate = time.first?.lastUpdate
+            }
+        } catch {
+            print("Error fetching balance: \(error.localizedDescription)")
+        }
+        
+        DispatchQueue.main.async {
+            self.bitcoinsBalance.text = "\(String(describing: self.balance!.first!.bitcoins)) ₿"
+            self.transactionsTableView.reloadData()
+        }
+    }
+    
 }
 
-extension UIColor {
-    static var turquoise: UIColor {
-        return UIColor(red: 104/255, green: 222/255, blue: 228/255, alpha: 1.0)
+extension FirstViewController: SecondViewControllerDelegate {
+    
+    var context: NSManagedObjectContext { (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext }
+    
+    func addTransaction() {
+        fetchTransactions()
+        fetchBalance()
+        
+        transactionsTableView.reloadData()
     }
 }

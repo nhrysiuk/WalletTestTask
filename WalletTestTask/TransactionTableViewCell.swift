@@ -28,7 +28,7 @@ class TransactionTableViewCell: UITableViewCell {
     func setupCategoryLabel() {
         contentView.addSubview(categoryLabel)
         
-        categoryLabel.text = "restaurant"
+        categoryLabel.text = transaction?.category
         categoryLabel.font = .systemFont(ofSize: 23, weight: .bold)
         
         categoryLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -43,7 +43,7 @@ class TransactionTableViewCell: UITableViewCell {
         
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "dd.MM.yyyy HH:mm"
-        let date = dateFormatter.string(from: Date())
+        let date = dateFormatter.string(from: transaction!.date!)
         dateLabel.text = date
         dateLabel.font = .systemFont(ofSize: 18, weight: .regular)
         
@@ -57,7 +57,7 @@ class TransactionTableViewCell: UITableViewCell {
     func setupBitcoinsLabel() {
         contentView.addSubview(bitcoinsLabel)
         
-        bitcoinsLabel.text = "- 0.35 ₿"
+        bitcoinsLabel.text = "\(String(describing: transaction!.bitcoins)) ₿"
         bitcoinsLabel.font = .systemFont(ofSize: 21, weight: .bold)
         
         bitcoinsLabel.translatesAutoresizingMaskIntoConstraints = false

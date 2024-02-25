@@ -6,11 +6,43 @@
 //
 
 import UIKit
+import CoreData
+
+//MARK: - Protocol
+protocol SecondViewControllerDelegate: AnyObject {
+    var context: NSManagedObjectContext { get }
+    func addTransaction()
+}
 
 class SecondViewController: UIViewController {
-
-    private let textField: UITextField = {
-        let textField = UITextField()
+    
+    //MARK: - Properties
+    weak var delegate: SecondViewControllerDelegate?
+    var chosenCategory: String! = "groceries"
+    
+    private let textField = UITextField()
+    private let categoryButton = UIButton()
+    private let addButton = UIButton()
+    
+    
+    //MARK: - View Controller Lifecycle
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        view.backgroundColor = .black
+        setupUI()
+    }
+    
+    //MARK: - UI Setup
+    func setupUI() {
+        self.title = "Add transaction"
+        navigationController?.navigationBar.tintColor = .turquoise
+        setupTextField()
+        setupCategoryButton()
+        setupAddButton()
+    }
+    
+    func setupTextField() {
         let placeholderText = "Enter a number..."
         let attributes: [NSAttributedString.Key: Any] = [
             .foregroundColor: UIColor.white,
@@ -25,46 +57,6 @@ class SecondViewController: UIViewController {
         
         textField.layer.borderWidth = 2
         textField.layer.borderColor = UIColor.white.cgColor
-        
-        return textField
-    }()
-    
-    private let categoryButton: UIButton = {
-        let button = UIButton()
-        button.tintColor = .white
-        button.backgroundColor = .darkGray
-        button.layer.cornerRadius = 0
-        button.layer.borderWidth = 2
-        button.layer.borderColor = UIColor.white.cgColor
-        
-        return button
-    }()
-    
-    private let addButton: UIButton = {
-        let button = UIButton()
-        button.setTitle("Add", for: .normal)
-        button.tintColor = .turquoise
-        button.backgroundColor = .darkGray
-        return button
-    }()
-    
-    override func viewDidLoad() {
-        super.viewDidLoad()
-    
-        view.backgroundColor = .black
-        setupUI()
-    }
-    
-    func setupUI() {
-        self.title = "Add transaction"
-        navigationController?.navigationBar.tintColor = .turquoise
-        setupTextField()
-        setupCategoryButton()
-        setupAddButton()
-    }
-    
-    // можливо, краще інший елемент
-    func setupTextField() {
         view.addSubview(textField)
         textField.translatesAutoresizingMaskIntoConstraints = false
         
@@ -76,9 +68,15 @@ class SecondViewController: UIViewController {
     }
     
     func setupCategoryButton() {
+        categoryButton.tintColor = .white
+        categoryButton.backgroundColor = .darkGray
+        categoryButton.layer.cornerRadius = 0
+        categoryButton.layer.borderWidth = 2
+        categoryButton.layer.borderColor = UIColor.white.cgColor
+        
         view.addSubview(categoryButton)
-        let actionClosure = { (action: UIAction) in
-            print(action.title)
+        let actionClosure = { [weak self] (action: UIAction) in
+            self!.chosenCategory = action.title
         }
         var menuChildren: [UIMenuElement] = []
         for category in Category.allCases {
@@ -101,8 +99,12 @@ class SecondViewController: UIViewController {
     }
     
     func setupAddButton() {
+        addButton.setTitle("Add", for: .normal)
+        addButton.backgroundColor = .turquoise
+        addButton.tintColor = .black
+    
         addButton.addTarget(self, action: #selector(addButtonTapped), for: .touchUpInside)
-
+        
         view.addSubview(addButton)
         addButton.translatesAutoresizingMaskIntoConstraints = false
         
@@ -113,8 +115,38 @@ class SecondViewController: UIViewController {
         ])
     }
     
+    // MARK: - Methods for UI Interaction
     @objc func addButtonTapped() {
+        let transaction = Transaction(context: delegate!.context)
+        guard let number = Double(textField.text ?? "") else {
+            //зробити нормальну обробку
+            fatalError()
+        }
+        transaction.bitcoins = -number
+        transaction.category = chosenCategory
+        transaction.date = Date()
         
+        do {
+            try delegate!.context.save()
+        } catch {
+            print("Couldn't save transaction: \(error.localizedDescription)")
+        }
+        
+        do {
+            let fetchRequest: NSFetchRequest<Balance> = Balance.fetchRequest()
+            if let existingBalance = try delegate!.context.fetch(fetchRequest).first {
+                existingBalance.bitcoins -= number
+            } else {
+                let newBalance = Balance(context: delegate!.context)
+                newBalance.bitcoins = number
+            }
+        } catch {
+            
+        }
+        
+        delegate!.addTransaction()
+        
+        navigationController?.popToRootViewController(animated: true)
     }
     
 }

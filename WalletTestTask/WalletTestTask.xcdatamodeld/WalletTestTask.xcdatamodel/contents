@@ -3,6 +3,12 @@
     <entity name="Balance" representedClassName="Balance" syncable="YES" codeGenerationType="class">
         <attribute name="bitcoins" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
     </entity>
+    <entity name="Rate" representedClassName="Rate" syncable="YES" codeGenerationType="class">
+        <attribute name="dollars" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+    </entity>
+    <entity name="Time" representedClassName="Time" syncable="YES" codeGenerationType="class">
+        <attribute name="lastUpdate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+    </entity>
     <entity name="Transaction" representedClassName="Transaction" syncable="YES" codeGenerationType="class">
         <attribute name="bitcoins" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="category" optional="YES" attributeType="String"/>
