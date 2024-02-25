@@ -20,6 +20,8 @@ class TransactionTableViewCell: UITableViewCell {
     //MARK: - Configuration
     func configure(with transaction: Transaction?) {
         self.transaction = transaction
+        
+        self.contentView.backgroundColor = .black
         setupCategoryLabel()
         setupDateLabel()
         setupBitcoinsLabel()
@@ -30,6 +32,7 @@ class TransactionTableViewCell: UITableViewCell {
         
         categoryLabel.text = transaction?.category
         categoryLabel.font = .systemFont(ofSize: 23, weight: .bold)
+        categoryLabel.textColor = .white
         
         categoryLabel.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
@@ -45,7 +48,9 @@ class TransactionTableViewCell: UITableViewCell {
         dateFormatter.dateFormat = "dd.MM.yyyy HH:mm"
         let date = dateFormatter.string(from: transaction!.date!)
         dateLabel.text = date
+        
         dateLabel.font = .systemFont(ofSize: 18, weight: .regular)
+        dateLabel.textColor = .white
         
         dateLabel.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
@@ -59,6 +64,7 @@ class TransactionTableViewCell: UITableViewCell {
         
         bitcoinsLabel.text = "\(String(describing: transaction!.bitcoins)) ₿"
         bitcoinsLabel.font = .systemFont(ofSize: 21, weight: .bold)
+        bitcoinsLabel.textColor = .white
         
         bitcoinsLabel.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([

@@ -19,7 +19,7 @@ import CoreData
 //✅ Нижче відображається список усіх транзакцій (в одному списку як поповнення балансу, так і витрати). Список транзакцій повинен групуватися по днях, від нових до старих. Кожна транзакція повинна відображати: час транзакції, кількість витрачених bitcoins, а також одну з категорій (groceries, taxi, electronics, restaurant, other).
 //✅ Під час відображення використовуємо пагінацію по 20 транзакцій. При скролінгу підвантажуємо наступні 20 і т.д.
 //🟠 оновлення раз на годину | Праворуч вгорі відображаємо курс Bitcoin по відношенню до долара. Він повинен оновлюватися кожну сесію, але не частіше ніж раз на годину (за сесію вважаємо запуск та відкриття додатку з бекграунду).
-//🟥 - at the end | Уніфіковані кольори для режимів Added pagination, created file for additional stuff, made code more readable
+//🟥 - at the end | Уніфіковані кольори для режимів
 
 class FirstViewController: UIViewController {
     
@@ -48,7 +48,6 @@ class FirstViewController: UIViewController {
     var rate: String?
     
     var transactionsPerPage = 10
-    var totalTransactionsCount = 0
     var loadedTransactionsCount = 0
     
     // MARK: - View Controller Lifecycle
@@ -72,11 +71,7 @@ class FirstViewController: UIViewController {
     func setupUI() {
         view.backgroundColor = .black
         self.title = "Wallet"
-        
-        navigationController?.navigationBar.titleTextAttributes = [
-            NSAttributedString.Key.foregroundColor: UIColor.white,
-        ]
-        
+    
         let rightBarButtonItem = UIBarButtonItem(customView: createLabelView())
         navigationItem.rightBarButtonItem = rightBarButtonItem
         
@@ -86,7 +81,7 @@ class FirstViewController: UIViewController {
     }
     
     func createLabelView() -> UIView {
-        rateLabel.textColor = .turquoise
+        rateLabel.textColor = .lightGray
         rateLabel.translatesAutoresizingMaskIntoConstraints = false
         
         let containerView = UIView()
@@ -141,6 +136,10 @@ class FirstViewController: UIViewController {
         bitcoinsBalance.numberOfLines = 0
         fillUpBalance.addTarget(self, action: #selector(fillUpButtonTapped), for: .touchUpInside)
         view.addSubview(stackView)
+        bitcoinsBalance.layer.shadowColor = UIColor.white.cgColor
+        bitcoinsBalance.layer.shadowOffset = CGSize(width: 0, height: 0)
+        bitcoinsBalance.layer.shadowOpacity = 0.8
+        bitcoinsBalance.layer.shadowRadius = 6
         
         fillUpBalance.setImage(UIImage(systemName: "plus.circle"), for: .normal)
         fillUpBalance.setPreferredSymbolConfiguration(UIImage.SymbolConfiguration(pointSize: 25, weight: .regular), forImageIn: .normal)
@@ -157,7 +156,10 @@ class FirstViewController: UIViewController {
     
     func setupAddTransaction() {
         addTransactionButton.setTitle("Add transaction", for: .normal)
-        addTransactionButton.tintColor = .white
+        addTransactionButton.setTitleColor(.turquoise, for: .normal)
+        addTransactionButton.backgroundColor = .darkGray
+        addTransactionButton.layer.cornerRadius = 7
+    
         
         addTransactionButton.addTarget(self, action: #selector(addTransactionButtonTapped), for: .touchUpInside)
         view.addSubview(addTransactionButton)
@@ -167,11 +169,12 @@ class FirstViewController: UIViewController {
             addTransactionButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             addTransactionButton.topAnchor.constraint(equalTo: bitcoinsBalance.bottomAnchor,
                                                       constant: 5),
+            addTransactionButton.widthAnchor.constraint(equalToConstant: 170),
         ])
     }
     
     func setupTransactionsTableView() {
-        transactionsTableView.backgroundColor = .darkGray
+        transactionsTableView.backgroundColor = .black
         transactionsTableView.register(TransactionTableViewCell.self, forCellReuseIdentifier: "TransactionCell")
         
         self.transactionsTableView.delegate = self
@@ -203,8 +206,7 @@ class FirstViewController: UIViewController {
             guard let self = self else { return }
             
             if let textField = fillUpAlertController?.textFields?.first,
-               let enteredNumber = textField.text {
-                let number = Double(enteredNumber) ?? 0.0
+               let enteredNumber = textField.text,  let number = Double(enteredNumber) {
                 do {
                     let fetchRequest: NSFetchRequest<Balance> = Balance.fetchRequest()
                     if let existingBalance = try context.fetch(fetchRequest).first {
@@ -230,6 +232,14 @@ class FirstViewController: UIViewController {
                 } catch {
                     print("Error: \(error.localizedDescription)")
                 }
+            } else {
+                let wrongAlertController = UIAlertController(title: "You've entered something wrong",
+                                                              message: "Please enter a valid number next time",
+                                                              preferredStyle: .alert)
+                let cancelAction = UIAlertAction(title: "OK", style: .cancel, handler: nil)
+                
+                wrongAlertController.addAction(cancelAction)
+                present(wrongAlertController, animated: true, completion: nil)
             }
         }
         
@@ -380,6 +390,10 @@ extension FirstViewController: SecondViewControllerDelegate {
     var context: NSManagedObjectContext { (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext }
     
     func addTransaction() {
+        loadedTransactionsCount = 0
+        transactions = []
+        transactionsByDate = [:]
+        
         fetchTransactions()
         fetchBalance()
         

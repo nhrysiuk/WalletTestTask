@@ -70,9 +70,6 @@ class SecondViewController: UIViewController {
     func setupCategoryButton() {
         categoryButton.tintColor = .white
         categoryButton.backgroundColor = .darkGray
-        categoryButton.layer.cornerRadius = 0
-        categoryButton.layer.borderWidth = 2
-        categoryButton.layer.borderColor = UIColor.white.cgColor
         
         view.addSubview(categoryButton)
         let actionClosure = { [weak self] (action: UIAction) in
@@ -93,7 +90,7 @@ class SecondViewController: UIViewController {
         NSLayoutConstraint.activate([
             categoryButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             categoryButton.topAnchor.constraint(equalTo: textField.bottomAnchor,
-                                                constant: 20),
+                                                constant: 40),
             categoryButton.widthAnchor.constraint(equalToConstant: 100),
         ])
     }
@@ -101,7 +98,7 @@ class SecondViewController: UIViewController {
     func setupAddButton() {
         addButton.setTitle("Add", for: .normal)
         addButton.backgroundColor = .turquoise
-        addButton.tintColor = .black
+        addButton.setTitleColor(.black, for: .normal)
     
         addButton.addTarget(self, action: #selector(addButtonTapped), for: .touchUpInside)
         
@@ -117,34 +114,40 @@ class SecondViewController: UIViewController {
     
     // MARK: - Methods for UI Interaction
     @objc func addButtonTapped() {
-        let transaction = Transaction(context: delegate!.context)
         guard let number = Double(textField.text ?? "") else {
-            //зробити нормальну обробку
-            fatalError()
-        }
-        transaction.bitcoins = -number
-        transaction.category = chosenCategory
-        transaction.date = Date()
-        
-        do {
-            try delegate!.context.save()
-        } catch {
-            print("Couldn't save transaction: \(error.localizedDescription)")
+            let wrongAlertController = UIAlertController(title: "You've entered wrong number",
+                                                          message: "Please enter a valid number next time",
+                                                          preferredStyle: .alert)
+            let cancelAction = UIAlertAction(title: "OK", style: .cancel, handler: nil)
+            
+            wrongAlertController.addAction(cancelAction)
+            present(wrongAlertController, animated: true, completion: nil)
+            
+            return
         }
         
         do {
             let fetchRequest: NSFetchRequest<Balance> = Balance.fetchRequest()
-            if let existingBalance = try delegate!.context.fetch(fetchRequest).first {
+            if let existingBalance = try delegate!.context.fetch(fetchRequest).first, existingBalance.bitcoins > number {
+                let transaction = Transaction(context: delegate!.context)
+                transaction.bitcoins = -number
+                transaction.category = chosenCategory
+                transaction.date = Date()
                 existingBalance.bitcoins -= number
+                try delegate!.context.save()
+                delegate!.addTransaction()
             } else {
-                let newBalance = Balance(context: delegate!.context)
-                newBalance.bitcoins = number
+                let wrongAlertController = UIAlertController(title: "Not enough money",
+                                                              message: "Please fill up your balance first",
+                                                              preferredStyle: .alert)
+                let cancelAction = UIAlertAction(title: "OK", style: .cancel, handler: nil)
+                
+                wrongAlertController.addAction(cancelAction)
+                present(wrongAlertController, animated: true, completion: nil)
             }
         } catch {
-            
+            print(error)
         }
-        
-        delegate!.addTransaction()
         
         navigationController?.popToRootViewController(animated: true)
     }
