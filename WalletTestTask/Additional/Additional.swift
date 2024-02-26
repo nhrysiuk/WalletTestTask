@@ -24,5 +24,9 @@ enum Category: String, CaseIterable {
 
 enum Const {
     static let dateFormat = "dd.MM.yyyy"
-    
+}
+
+struct Section {
+    var date: String
+    var transactions: [Transaction]
 }

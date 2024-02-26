@@ -5,6 +5,7 @@
 //  Created by Анастасія Грисюк on 24.02.2024.
 //
 
+
 import UIKit
 import CoreData
 
@@ -34,8 +35,9 @@ class FirstViewController: UIViewController {
     var timeOfLastUpdate: Date?
     var rate: String?
     
-    var transactionsPerPage = 10
+    var transactionsPerPage = 20
     var loadedTransactionsCount = 0
+    var sections = [Section]()
     
     // MARK: - View Controller Lifecycle
     override func viewDidLoad() {
@@ -268,12 +270,11 @@ class FirstViewController: UIViewController {
 extension FirstViewController: UITableViewDelegate, UITableViewDataSource {
     
     func numberOfSections(in tableView: UITableView) -> Int {
-        return transactionsByDate.keys.count
+        return sections.count
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        let date = Array(transactionsByDate.keys)[section]
-        return transactionsByDate[date]?.count ?? 0
+        return sections[section].transactions.count
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -281,16 +282,19 @@ extension FirstViewController: UITableViewDelegate, UITableViewDataSource {
             fatalError("oops")
         }
         
-        let date = Array(transactionsByDate.keys)[indexPath.section]
-        if let transaction = transactionsByDate[date]?[indexPath.row] {
-            cell.configure(with: transaction)
-        }
+        let transaction = sections[indexPath.section].transactions[indexPath.row]
+        cell.configure(with: transaction)
+        
         
         return cell
     }
     
     func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
-        return Array(transactionsByDate.keys)[section]
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = Const.dateFormat
+        
+        let date = sections[section].date
+        return date
     }
     
     
@@ -332,24 +336,41 @@ extension FirstViewController: UITableViewDelegate, UITableViewDataSource {
         
         let sort = NSSortDescriptor(key: "date", ascending: false)
         request.sortDescriptors = [sort]
-        
+        var fetchedTransactions = [Transaction]()
         do {
-            let fetchedTransactions = try CoreDataProcessor.shared.context.fetch(request)
-            transactions += fetchedTransactions
+            fetchedTransactions = try CoreDataProcessor.shared.context.fetch(request)
             
-            transactionsByDate = Dictionary(grouping: transactions) { transaction in
-                return formatDate(transaction.date!)
+            if !fetchedTransactions.isEmpty {
+                transactions += fetchedTransactions
+                
+                transactionsByDate = Dictionary(grouping: transactions) { transaction in
+                    return formatDate(transaction.date!)
+                }
+            
+                for (date, transactionsOnDay) in transactionsByDate.sorted(by: { $0.key < $1.key }) {
+                    if let existingSectionIndex = sections.firstIndex(where: { $0.date == date }) {
+                        self.sections[existingSectionIndex].transactions += transactionsOnDay
+                    } else {
+                        let newSection = Section(date: date, transactions: transactionsOnDay)
+                        self.sections.insert(newSection, at: 0)
+                    }
+                }
             }
-            
+            sections.sort { (section1, section2) -> Bool in
+                return section1.date > section2.date
+            }
             loadedTransactionsCount += fetchedTransactions.count
         } catch {
             print("Error fetching transactions: \(error.localizedDescription)")
         }
         
         DispatchQueue.main.async {
-            self.transactionsTableView.reloadData()
+            if !fetchedTransactions.isEmpty {
+                self.transactionsTableView.reloadData()
+            }
         }
     }
+    
     
     func formatDate(_ date: Date) -> String {
         let dateFormatter = DateFormatter()
@@ -364,6 +385,7 @@ extension FirstViewController: SecondViewControllerDelegate {
         loadedTransactionsCount = 0
         transactions = []
         transactionsByDate = [:]
+        sections = []
         
         fetchTransactions()
         fetchBalance()

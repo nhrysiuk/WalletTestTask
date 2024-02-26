@@ -8,7 +8,7 @@
 import UIKit
 import CoreData
 
-//MARK: - Protocol
+// MARK: - Protocol
 protocol SecondViewControllerDelegate: AnyObject {
     func addTransaction()
 }
@@ -127,7 +127,7 @@ class SecondViewController: UIViewController {
         
         do {
             let fetchRequest: NSFetchRequest<Balance> = Balance.fetchRequest()
-            if let existingBalance = try CoreDataProcessor.shared.context.fetch(fetchRequest).first, existingBalance.bitcoins > number {
+            if let existingBalance = try CoreDataProcessor.shared.context.fetch(fetchRequest).first, existingBalance.bitcoins >= number {
                 let transaction = Transaction(context: CoreDataProcessor.shared.context)
                 transaction.bitcoins = -number
                 transaction.category = chosenCategory

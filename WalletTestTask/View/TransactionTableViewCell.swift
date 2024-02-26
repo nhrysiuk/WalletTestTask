@@ -9,7 +9,7 @@ import UIKit
 
 class TransactionTableViewCell: UITableViewCell {
     
-    //MARK: - Identifier and properties
+    // MARK: - Identifier and properties
     static let identifier = "TransactionCell"
     
     var transaction: Transaction?
@@ -17,7 +17,7 @@ class TransactionTableViewCell: UITableViewCell {
     private let bitcoinsLabel = UILabel()
     private let categoryLabel = UILabel()
     
-    //MARK: - Configuration
+    // MARK: - Configuration
     func configure(with transaction: Transaction?) {
         self.transaction = transaction
         
@@ -37,7 +37,7 @@ class TransactionTableViewCell: UITableViewCell {
         categoryLabel.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
             categoryLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 5),
-            categoryLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            categoryLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16)
         ])
     }
     
@@ -53,7 +53,7 @@ class TransactionTableViewCell: UITableViewCell {
         dateLabel.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
             dateLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -5),
-            dateLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            dateLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16)
         ])
     }
     
