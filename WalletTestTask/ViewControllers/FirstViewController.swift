@@ -108,34 +108,6 @@ class FirstViewController: UIViewController {
         }
     }
     
-    func fetchRateFromAPI() async {
-        rate = await APIProcessor.fetchExchangeRate() ?? "no data"
-        let existingRateEntities = CoreDataProcessor.shared.fetch(BitcoinRate.self)
-        if let existingRate = existingRateEntities.first {
-            existingRate.dollars = self.rate!
-        } else {
-            let newRate = BitcoinRate(context: CoreDataProcessor.shared.context)
-            newRate.dollars = self.rate!
-            CoreDataProcessor.shared.saveContext()
-        }
-        
-        CoreDataProcessor.shared.saveContext()
-        
-        timeOfLastUpdate = Date()
-        
-        let existingTimeEntities = CoreDataProcessor.shared.fetch(Time.self)
-        
-        if let existingTime = existingTimeEntities.first {
-            existingTime.lastUpdate = timeOfLastUpdate
-        } else {
-            let newTime = Time(context: CoreDataProcessor.shared.context)
-            newTime.lastUpdate = timeOfLastUpdate
-        }
-        
-        let time = Time(context: CoreDataProcessor.shared.context)
-        time.lastUpdate = timeOfLastUpdate
-    }
-    
     func setupStackView() {
         bitcoinsBalance.textColor = .white
         bitcoinsBalance.text = "0 ₿"
@@ -311,7 +283,7 @@ extension FirstViewController: UITableViewDelegate, UITableViewDataSource {
         }
     }
     
-    // MARK: - Work with Core Data
+    // MARK: - Work with Core Data and API
     func fetchBalance() {
         self.balance = CoreDataProcessor.shared.fetch(Balance.self)
         
@@ -376,6 +348,34 @@ extension FirstViewController: UITableViewDelegate, UITableViewDataSource {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = Const.dateFormat
         return dateFormatter.string(from: date)
+    }
+    
+    func fetchRateFromAPI() async {
+        rate = await APIProcessor.fetchExchangeRate() ?? "no data"
+        let existingRateEntities = CoreDataProcessor.shared.fetch(BitcoinRate.self)
+        if let existingRate = existingRateEntities.first {
+            existingRate.dollars = self.rate!
+        } else {
+            let newRate = BitcoinRate(context: CoreDataProcessor.shared.context)
+            newRate.dollars = self.rate!
+            CoreDataProcessor.shared.saveContext()
+        }
+        
+        CoreDataProcessor.shared.saveContext()
+        
+        timeOfLastUpdate = Date()
+        
+        let existingTimeEntities = CoreDataProcessor.shared.fetch(Time.self)
+        
+        if let existingTime = existingTimeEntities.first {
+            existingTime.lastUpdate = timeOfLastUpdate
+        } else {
+            let newTime = Time(context: CoreDataProcessor.shared.context)
+            newTime.lastUpdate = timeOfLastUpdate
+        }
+        
+        let time = Time(context: CoreDataProcessor.shared.context)
+        time.lastUpdate = timeOfLastUpdate
     }
 }
 
